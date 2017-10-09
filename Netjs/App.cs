@@ -149,10 +149,14 @@ namespace Netjs
 			new CsToTs (config.ES3Compatible).Run (builder.SyntaxTree);
 
 			Step ("Writing");
-			using (var outputWriter = new StreamWriter (outPath)) {
+			using (var outputWriter = new StringWriter()) {
 				var output = new PlainTextOutput (outputWriter);
 				builder.GenerateCode (output, (s, e) => new TsOutputVisitor (s, e));
+				var content = outputWriter.ToString();
+				content = content.Replace("super..ctor();", ""); 
+				File.WriteAllText(outPath, content);
 			}
+
 
 			Step ("Done");
 		}
