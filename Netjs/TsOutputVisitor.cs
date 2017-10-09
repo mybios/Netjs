@@ -2073,7 +2073,17 @@ namespace Netjs
 					Space ();
 					variableDeclarationStatement.Type.AcceptVisitor (this);
 				}
-				if (!v.Initializer.IsNull) {
+
+				//sometimes we're not initializing locals to null as we apparently expected (lambdas)....
+				if (v.Initializer.IsNull && variableDeclarationStatement.Type is FunctionType)
+				{
+					Space(policy.SpaceAroundAssignment);
+					WriteToken(Roles.Assign);
+					Space(policy.SpaceAroundAssignment);
+					v.Initializer.AcceptVisitor(this);
+					formatter.WriteIdentifier("null");
+				}
+				else if (!v.Initializer.IsNull) {
 					Space(policy.SpaceAroundAssignment);
 					WriteToken(Roles.Assign);
 					Space(policy.SpaceAroundAssignment);
