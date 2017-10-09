@@ -83,7 +83,7 @@ namespace Netjs
 			yield return new FixIsOp ();
 			yield return new Renames ();
 			yield return new SuperPropertiesToThis ();
-			yield return new BitwiseOrToConditionalForBooleans ();
+			yield return new BitwiseAndOrToConditionalForBooleans ();
 			yield return new RemoveDelegateConstructors ();
 			yield return new MakeNullableExplicit ();
 			yield return new RemoveEnumBaseType ();
@@ -1800,7 +1800,7 @@ namespace Netjs
 			}
 		}
 
-		class BitwiseOrToConditionalForBooleans : DepthFirstAstVisitor, IAstTransform
+		class BitwiseAndOrToConditionalForBooleans : DepthFirstAstVisitor, IAstTransform
 		{
 			public void Run (AstNode compilationUnit)
 			{
@@ -1811,13 +1811,17 @@ namespace Netjs
 			{
 				base.VisitBinaryOperatorExpression (binaryOperatorExpression);
 
-				if (binaryOperatorExpression.Operator != BinaryOperatorType.BitwiseOr)
+				if (binaryOperatorExpression.Operator != BinaryOperatorType.BitwiseOr && 
+					binaryOperatorExpression.Operator != BinaryOperatorType.BitwiseAnd)
 					return;
 
 				var leftT = GetTypeRef (binaryOperatorExpression.Left);
 
 				if (leftT != null && leftT.FullName == "System.Boolean") {
-					binaryOperatorExpression.Operator = BinaryOperatorType.ConditionalOr;
+					if(binaryOperatorExpression.Operator == BinaryOperatorType.BitwiseOr)
+						binaryOperatorExpression.Operator = BinaryOperatorType.ConditionalOr;
+					else 
+						binaryOperatorExpression.Operator = BinaryOperatorType.ConditionalAnd;
 				}
 			}
 		}
