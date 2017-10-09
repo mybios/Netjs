@@ -2228,7 +2228,7 @@ namespace Netjs
 			}
 
 			var ti = expr.Annotation<ICSharpCode.Decompiler.Ast.TypeInformation> ();
-			if (ti != null) {
+			if (ti != null && ti.InferredType != null) {
 				return ti.InferredType;
 			}
 
@@ -2407,6 +2407,7 @@ namespace Netjs
 			public override void VisitIdentifier (Identifier identifier)
 			{
 				base.VisitIdentifier (identifier);
+				//this is risky. it breaks more complex dotted expressions from earlier. well, i fixed those names so this doesnt trip it
 				var o = identifier.Name;
 				var n = o.Replace ('<', '_').Replace ('>', '_');
 				if (n != o) {
