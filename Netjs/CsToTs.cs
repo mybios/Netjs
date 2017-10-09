@@ -1366,17 +1366,12 @@ namespace Netjs
 				compilationUnit.AcceptVisitor (this);
 			}
 
-			public override void VisitInvocationExpression (InvocationExpression invocationExpression)
+			void HandleMethod(MethodDefinition md, AstNodeCollection<Expression> arguments)
 			{
-				base.VisitInvocationExpression (invocationExpression);
-
-				var md = GetMethodDef (invocationExpression);
-				if (md == null) {
-					return;
-				}
+				if (md == null) return;
 
 				var i = 0;
-				foreach (var a in invocationExpression.Arguments) {
+				foreach (var a in arguments) {
 
 					var p = md.Parameters[i];
 					i++;
@@ -1400,6 +1395,24 @@ namespace Netjs
 
 				}
 
+			}
+
+
+			public override void VisitObjectCreateExpression(ObjectCreateExpression objectCreateExpression)
+			{
+				base.VisitObjectCreateExpression(objectCreateExpression);
+
+				var md = GetMethodDef(objectCreateExpression);
+				HandleMethod(md, objectCreateExpression.Arguments);
+			}
+
+			public override void VisitInvocationExpression (InvocationExpression invocationExpression)
+			{
+				base.VisitInvocationExpression (invocationExpression);
+
+				var md = GetMethodDef (invocationExpression);
+
+				HandleMethod(md, invocationExpression.Arguments);
 			}
 
 			public override void VisitVariableInitializer (VariableInitializer variableInitializer)
