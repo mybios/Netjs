@@ -391,6 +391,11 @@ namespace Netjs
 			}
 		}
 
+		void Colon()
+		{
+			WriteToken(Roles.Colon);
+		}
+
 		/// <summary>
 		/// Writes a space depending on policy.
 		/// </summary>
@@ -1702,6 +1707,14 @@ namespace Netjs
 		public void VisitDoWhileStatement(DoWhileStatement doWhileStatement)
 		{
 			StartNode(doWhileStatement);
+
+			var label = doWhileStatement.Annotation<LabelStatement> ();
+			if (label != null) {
+				WriteIdentifier (label.Label);
+				Colon();
+				Space ();
+			}
+
 			WriteKeyword(DoWhileStatement.DoKeywordRole);
 			WriteEmbeddedStatement(doWhileStatement.EmbeddedStatement);
 			WriteKeyword(DoWhileStatement.WhileKeywordRole);
@@ -1768,6 +1781,14 @@ namespace Netjs
 		public void VisitForStatement(ForStatement forStatement)
 		{
 			StartNode(forStatement);
+
+			var label = forStatement.Annotation<LabelStatement> ();
+			if (label != null) {
+				WriteIdentifier (label.Label);
+				Colon();
+				Space ();
+			}
+
 			WriteKeyword(ForStatement.ForKeywordRole);
 			Space(policy.SpaceBeforeForParentheses);
 			LPar();
@@ -2066,6 +2087,14 @@ namespace Netjs
 		public void VisitWhileStatement(WhileStatement whileStatement)
 		{
 			StartNode(whileStatement);
+
+			var label = whileStatement.Annotation<LabelStatement> ();
+			if (label != null) {
+				WriteIdentifier (label.Label);
+				Colon();
+				Space ();
+			}
+
 			WriteKeyword(WhileStatement.WhileKeywordRole);
 			Space(policy.SpaceBeforeWhileParentheses);
 			LPar();

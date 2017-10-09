@@ -92,6 +92,7 @@ namespace Netjs
 			yield return new RemoveModifiers ();
 			yield return new RemoveEmptySwitch ();
 			yield return new MakeWhileLoop ();
+			yield return new LabelEveryContinueAndBreak(); //not sure of ideal location.. probably should be after loops are synth'd and before goto removal madness
 			yield return new GotoRemoval ();
 			yield return new OrderClasses ();
 			yield return new CallStaticCtors ();
@@ -699,6 +700,53 @@ namespace Netjs
 			}
 		}
 
+		class LabelEveryContinueAndBreak : DepthFirstAstVisitor, IAstTransform
+		{
+			public void Run (AstNode compilationUnit)
+			{
+				compilationUnit.AcceptVisitor (this);
+			}
+
+			int labelCount;
+
+			void CommonHandling(Statement statement)
+			{
+				LabelStatement lbl = null;
+
+				//look for descendent continues; make them labeled continues
+				//give the loop a label at that time
+				foreach (var BorC in 
+					statement.Descendants.OfType<ContinueStatement>().Cast<Statement>()
+					.Concat(statement.Descendants.OfType<BreakStatement>().Cast<Statement>())
+					)
+				{
+					if (lbl == null)
+					{
+						lbl = new LabelStatement { Label = "_zz_" + (labelCount++) };
+						statement.AddAnnotation(lbl);
+					}
+					BorC.AddAnnotation(lbl);
+				}
+			}
+
+			public override void VisitForStatement(ForStatement forStatement)
+			{
+				base.VisitForStatement(forStatement);
+				CommonHandling(forStatement);
+			}
+
+			public override void VisitWhileStatement(WhileStatement whileStatement)
+			{
+				base.VisitWhileStatement(whileStatement);
+				CommonHandling(whileStatement);
+			}
+
+			public override void VisitDoWhileStatement(DoWhileStatement doWhileStatement)
+			{
+				base.VisitDoWhileStatement(doWhileStatement);
+				CommonHandling(doWhileStatement);
+			}
+		}
 
 		class GotoRemoval : DepthFirstAstVisitor, IAstTransform
 		{
