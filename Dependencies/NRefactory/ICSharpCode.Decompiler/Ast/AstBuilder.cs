@@ -78,7 +78,8 @@ namespace ICSharpCode.Decompiler.Ast
 			if (type != null) {
 				if (type.DeclaringType != null) {
 					if (settings.AnonymousMethods && IsClosureType(type))
-						return true;
+						//return true;
+						return false; //hack for netjs - for some reason we dont decompile all the anonymous methods correctly and have leftover closure types which need to get used by junkier IL
 					if (settings.YieldReturn && YieldReturnDecompiler.IsCompilerGeneratorEnumerator(type))
 						return true;
 					if (settings.AsyncAwait && AsyncDecompiler.IsCompilerGeneratedStateMachine(type))
