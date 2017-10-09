@@ -204,7 +204,7 @@ namespace ICSharpCode.Decompiler.Ast
 					 select GetNameFromExpression(expr.Arguments.Single())
 					).Except(fieldNamesInCurrentType).ToList();
 				if (proposedNameForStores.Count == 1) {
-					proposedName = proposedNameForStores[0];
+					if(!string.IsNullOrEmpty(proposedNameForStores[0])) proposedName = "tmp_" + proposedNameForStores[0];
 				}
 			}
 			if (string.IsNullOrEmpty(proposedName)) {
