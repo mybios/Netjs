@@ -399,8 +399,14 @@ namespace ICSharpCode.Decompiler.Ast
 			return result;
 		}
 
-		internal static string CleanName(string name)
+		public static string CleanName(string name)
 		{
+			//to fix <.ctor>b__6_0
+			//(work like this is done in netjs too, but it makes mistakes due to operating at a dumber level)
+			name = name.Replace('<', '_').Replace('>', '_');
+			name = name.Replace('.', '_');
+			//if (name.StartsWith("<.")) name = name.Substring(2);
+
 			int pos = name.LastIndexOf('`');
 			if (pos >= 0)
 				name = name.Substring(0, pos);

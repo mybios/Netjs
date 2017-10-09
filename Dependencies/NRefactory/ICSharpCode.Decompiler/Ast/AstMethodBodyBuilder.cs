@@ -589,7 +589,7 @@ namespace ICSharpCode.Decompiler.Ast
 					return TransformCall(true, byteCode,  args);
 					case ILCode.Ldftn: {
 						Cecil.MethodReference cecilMethod = ((MethodReference)operand);
-						var expr = new Ast.IdentifierExpression(cecilMethod.Name);
+						var expr = new Ast.IdentifierExpression(AstBuilder.CleanName(cecilMethod.Name));
 						expr.TypeArguments.AddRange(ConvertTypeArguments(cecilMethod));
 						expr.AddAnnotation(cecilMethod);
 						return new IdentifierExpression("ldftn").Invoke(expr)
@@ -597,7 +597,7 @@ namespace ICSharpCode.Decompiler.Ast
 					}
 					case ILCode.Ldvirtftn: {
 						Cecil.MethodReference cecilMethod = ((MethodReference)operand);
-						var expr = new Ast.IdentifierExpression(cecilMethod.Name);
+						var expr = new Ast.IdentifierExpression(AstBuilder.CleanName(cecilMethod.Name));
 						expr.TypeArguments.AddRange(ConvertTypeArguments(cecilMethod));
 						expr.AddAnnotation(cecilMethod);
 						return new IdentifierExpression("ldvirtftn").Invoke(expr)
