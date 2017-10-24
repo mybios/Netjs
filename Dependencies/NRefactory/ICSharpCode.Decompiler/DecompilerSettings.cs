@@ -71,6 +71,21 @@ namespace ICSharpCode.Decompiler
 				}
 			}
 		}
+
+		bool decompileStringConcat = true;
+		
+		/// <summary>
+		/// Decompile string.Concat(a,b) to a+b
+		/// </summary>
+		public bool StringConcat {
+			get { return decompileStringConcat; }
+			set {
+				if (decompileStringConcat != value) {
+					decompileStringConcat = value;
+					OnPropertyChanged("StringConcat");
+				}
+			}
+		}
 		
 		bool asyncAwait = true;
 		

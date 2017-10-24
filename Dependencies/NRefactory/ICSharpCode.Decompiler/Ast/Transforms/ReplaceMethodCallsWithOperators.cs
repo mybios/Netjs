@@ -51,27 +51,31 @@ namespace ICSharpCode.Decompiler.Ast.Transforms
 		public override object VisitInvocationExpression(InvocationExpression invocationExpression, object data)
 		{
 			base.VisitInvocationExpression(invocationExpression, data);
-			ProcessInvocationExpression(invocationExpression);
+			ProcessInvocationExpression(context, invocationExpression);
 			return null;
 		}
 
-		internal static void ProcessInvocationExpression(InvocationExpression invocationExpression)
+		internal static void ProcessInvocationExpression(DecompilerContext context, InvocationExpression invocationExpression)
 		{
 			MethodReference methodRef = invocationExpression.Annotation<MethodReference>();
 			if (methodRef == null)
 				return;
 			var arguments = invocationExpression.Arguments.ToArray();
-			
+
 			// Reduce "String.Concat(a, b)" to "a + b"
-			if (methodRef.Name == "Concat" && methodRef.DeclaringType.FullName == "System.String" && arguments.Length >= 2)
+			if (context.Settings.StringConcat)
 			{
-				invocationExpression.Arguments.Clear(); // detach arguments from invocationExpression
-				Expression expr = arguments[0];
-				for (int i = 1; i < arguments.Length; i++) {
-					expr = new BinaryOperatorExpression(expr, BinaryOperatorType.Add, arguments[i]);
+				if (methodRef.Name == "Concat" && methodRef.DeclaringType.FullName == "System.String" && arguments.Length >= 2)
+				{
+					invocationExpression.Arguments.Clear(); // detach arguments from invocationExpression
+					Expression expr = arguments[0];
+					for (int i = 1; i < arguments.Length; i++)
+					{
+						expr = new BinaryOperatorExpression(expr, BinaryOperatorType.Add, arguments[i]);
+					}
+					invocationExpression.ReplaceWith(expr);
+					return;
 				}
-				invocationExpression.ReplaceWith(expr);
-				return;
 			}
 			
 			switch (methodRef.FullName) {

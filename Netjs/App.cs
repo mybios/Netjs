@@ -130,6 +130,7 @@ namespace Netjs
 			context.Settings.UsingDeclarations = false;
 			context.Settings.FullyQualifyAmbiguousTypeNames = true;
 			context.Settings.YieldReturn = false;
+			context.Settings.StringConcat = false;
 			var builder = new AstBuilder (context);
 			var decompiled = new HashSet<string> ();
 			for (;;) {
