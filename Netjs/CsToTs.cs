@@ -2163,7 +2163,11 @@ namespace Netjs
 							new MemberReferenceExpression (t.Clone(), "get_Item"),
 							indexerExpression.Arguments.Select (x => x.Clone ()));
 
+						//make sure type info doesnt get erased; ReplaceInstanceMembers will need it
 						indexerExpression.ReplaceWith (s);
+						var typedata = indexerExpression.Annotation<ICSharpCode.Decompiler.Ast.TypeInformation>();
+						s.AddAnnotation(typedata);
+
 					}
 					Changed = true;
 				}
