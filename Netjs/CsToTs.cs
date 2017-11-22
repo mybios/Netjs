@@ -45,7 +45,7 @@ namespace Netjs
 		{
 			yield return new FixBadNames ();
 			yield return new LiftNestedClasses ();
-			yield return new RemoveConstraints ();
+			//yield return new RemoveConstraints ();
 			yield return new FlattenNamespaces ();
 			yield return new StructToClass ();
 			yield return new FixGenericsThatUseObject ();
@@ -2533,6 +2533,14 @@ namespace Netjs
 				case "any":
 				case "Object":
 					return new PrimitiveType ("any");
+
+				//this was needed after I removed RemoveConstraints
+				//these are the class and new constraints. we want the type constraints, but not these (unclear what we'd do with them)
+				//so we just discard them
+				case "class":
+				case "new":
+						return null;
+
 				default:
 					throw new NotSupportedException (primitiveType.Keyword);
 				}

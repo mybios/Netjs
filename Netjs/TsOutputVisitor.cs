@@ -1547,7 +1547,18 @@ namespace Netjs
 				break;
 			}
 			typeDeclaration.NameToken.AcceptVisitor(this);
-			WriteTypeParameters(typeDeclaration.TypeParameters);
+			WriteTypeParameters(typeDeclaration.TypeParameters,
+				tp => {
+					var cs = typeDeclaration.Constraints.Where (x => x.TypeParameter.Identifier == tp.Name && x.BaseTypes.Count > 0)
+						.Select(x => x.BaseTypes.FirstOrNullObject ()).FirstOrDefault ();
+					if (cs != null) {
+						Space ();
+						WriteToken ("extends", Roles.Colon);
+						Space ();
+						WriteIdentifier (cs.ToString()); //uhhhh namespace, or something? I don't know
+					}
+				});
+
 			if (typeDeclaration.BaseTypes.Any()) {
 
 				var bs = typeDeclaration.BaseTypes.FirstOrDefault (x => !CsToTs.IsInterface (x));
@@ -2343,7 +2354,7 @@ namespace Netjs
 						Space ();
 						WriteToken ("extends", Roles.Colon);
 						Space ();
-						WriteIdentifier ("NObject");
+						WriteIdentifier (cs.ToString()); //uhhhh namespace, or something? I don't know
 					}
 
 				});
@@ -2589,15 +2600,16 @@ namespace Netjs
 
 		public void VisitConstraint(Constraint constraint)
 		{
-			StartNode(constraint);
-			Space();
-			WriteKeyword(Roles.WhereKeyword);
-			WriteIdentifier(constraint.TypeParameter.Identifier);
-			Space();
-			WriteToken(Roles.Colon);
-			Space();
-			WriteCommaSeparatedList(constraint.BaseTypes);
-			EndNode(constraint);
+			//Uhhh, I cant make sense out of this
+			//StartNode(constraint);
+			//Space();
+			//WriteKeyword(Roles.WhereKeyword);
+			//WriteIdentifier(constraint.TypeParameter.Identifier);
+			//Space();
+			//WriteToken(Roles.Colon);
+			//Space();
+			//WriteCommaSeparatedList(constraint.BaseTypes);
+			//EndNode(constraint);
 		}
 
 		public void VisitCSharpTokenNode(CSharpTokenNode cSharpTokenNode)
