@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using ICSharpCode.Decompiler.Ast.Transforms;
@@ -80,6 +81,8 @@ namespace Netjs
 			yield return new CharsToNumbers ();
 			yield return new StringConstructorsToMethods ();
 			yield return new MakePrimitiveTypesJsTypes ();
+			yield return new AddSerializationHelpers();
+
 			yield return new FixIsOp ();
 			yield return new Renames ();
 			yield return new SuperPropertiesToThis ();
@@ -2308,6 +2311,103 @@ namespace Netjs
 			}
 
 			return null;
+		}
+
+		class AddSerializationHelpers : DepthFirstAstVisitor, IAstTransform
+		{
+			public void Run (AstNode compilationUnit)
+			{
+				compilationUnit.AcceptVisitor (this);
+			}
+
+			Regex ListRegex = new Regex(@"List\<(.*)\>$");
+			Regex ArrayRegex = new Regex(@"(.*)\[\]$");
+			Regex DictionaryRegex = new Regex(@"Dictionary\<([^,]*), (.*)\>$");
+
+			public override void VisitTypeDeclaration(TypeDeclaration typeDeclaration)
+			{
+				base.VisitTypeDeclaration(typeDeclaration);
+
+				//Console.WriteLine(typeDeclaration.Name);
+
+				if(typeDeclaration.ClassType != ClassType.Class)
+					return;
+
+				//we need a serializable attribute
+				if (typeDeclaration.Attributes.Count == 0)
+					return;
+
+				bool isSerializable = false;
+				bool isGarbage = false;
+				foreach (var a in typeDeclaration.Attributes)
+				{
+					var aa = a.FirstChild.Annotation<Mono.Cecil.CustomAttribute>();
+					if (a.FirstChild.ToString() == "Serializable")
+						isSerializable = true;
+					
+					//for some reason CompilerGenerated is all Serializable..
+					if(a.FirstChild.ToString() == "CompilerGenerated")
+						isGarbage = true;
+				}
+
+				if (!isSerializable) return;
+				if (isGarbage) return;
+
+				//NOPE:
+				//inspect each member to see if it's serializable (todo: refactor serializable check)
+				//INSTEAD:
+				//inspect each member to see if it's a primitive type; if it isn't, emit 'reflection' data: just the name of the type in another field
+				//(typescript's machine services can take it from there)
+				var memos = new List<Tuple<string, string>>();
+				foreach (var field in typeDeclaration.Members.Where(m=>m.EntityType == EntityType.Field))
+				{
+					//dont handle types that are primitive
+					if (field.ReturnType is PrimitiveType)
+						continue;
+
+					//enums are trouble? maybe not
+
+					var declarations = field.GetChildrenByRole(Roles.Variable);
+					foreach (var decl in declarations)
+					{
+						memos.Add(Tuple.Create(field.ReturnType.ToString(), decl.Name.ToString()));
+					}
+				}
+
+				//now add all memos as new members
+				foreach (var memo in memos)
+				{
+					string typeName = memo.Item1;
+
+					//change up the typename so it's in a more convenient format
+					var listMatch = ListRegex.Match(typeName);
+					if(listMatch.Success)
+					{
+						typeName = $"L|{listMatch.Groups[1].Value}";
+					}
+					var arrayMatch = ArrayRegex.Match(typeName);
+					if(arrayMatch.Success)
+					{
+						typeName = $"A|{arrayMatch.Groups[1].Value}";
+					}
+					var dictMatch = DictionaryRegex.Match(typeName);
+					if (dictMatch.Success)
+					{
+						typeName = $"D|{dictMatch.Groups[1].Value}|{dictMatch.Groups[2].Value}";
+					}
+
+					string fieldName = "__" + memo.Item2;
+					var fd = new FieldDeclaration {
+						Name = fieldName,
+						ReturnType = new PrimitiveType ("string")
+					};
+					var initializer = new VariableInitializer(fieldName, new PrimitiveExpression(typeName));
+					fd.Variables.Add(initializer);
+					fd.Modifiers = Modifiers.Static | Modifiers.Private;
+					typeDeclaration.Members.Add(fd);
+				}
+
+			}
 		}
 
 		class AccessorsToInvocations : DepthFirstAstVisitor, IAstTransform
