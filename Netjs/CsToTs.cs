@@ -3957,7 +3957,17 @@ namespace Netjs
 			public override void VisitFieldDeclaration (FieldDeclaration fieldDeclaration)
 			{
 				base.VisitFieldDeclaration (fieldDeclaration);
+				var oldModifiers = fieldDeclaration.Modifiers;
 				fieldDeclaration.Modifiers = Rem (fieldDeclaration.Modifiers);
+
+				//if we began with const, re-add them both here. newer TS can handle it
+				//but it will be as static readonly (for some damn reason TS cant put const members)
+				if ((oldModifiers & Modifiers.Const) != 0)
+				{
+					fieldDeclaration.Modifiers |= (Modifiers.Static | Modifiers.Readonly);
+					fieldDeclaration.Modifiers &= ~Modifiers.Const;
+				}
+
 				fieldDeclaration.Attributes.Clear ();
 			}
 
@@ -3984,7 +3994,7 @@ namespace Netjs
 					m |= Modifiers.Static;
 				}
 
-				m &= ~(Modifiers.Public | Modifiers.Abstract | Modifiers.Async | Modifiers.Const | Modifiers.Protected | Modifiers.Readonly | Modifiers.Override | Modifiers.Virtual | Modifiers.Sealed | Modifiers.Internal);
+				m &= ~(Modifiers.Public | Modifiers.Abstract | Modifiers.Async | Modifiers.Protected | Modifiers.Readonly | Modifiers.Override | Modifiers.Virtual | Modifiers.Sealed | Modifiers.Internal);
 
 				return m;
 			}
