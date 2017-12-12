@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using System;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
@@ -82,7 +83,6 @@ namespace Netjs
 			yield return new StringConstructorsToMethods ();
 			yield return new MakePrimitiveTypesJsTypes ();
 			yield return new AddSerializationHelpers();
-
 			yield return new FixIsOp ();
 			yield return new Renames ();
 			yield return new SuperPropertiesToThis ();
@@ -2330,7 +2330,7 @@ namespace Netjs
 
 				//Console.WriteLine(typeDeclaration.Name);
 
-				if(typeDeclaration.ClassType != ClassType.Class)
+				if (typeDeclaration.ClassType != ClassType.Class)
 					return;
 
 				//we need a serializable attribute
@@ -2344,9 +2344,9 @@ namespace Netjs
 					var aa = a.FirstChild.Annotation<Mono.Cecil.CustomAttribute>();
 					if (a.FirstChild.ToString() == "Serializable")
 						isSerializable = true;
-					
+
 					//for some reason CompilerGenerated is all Serializable..
-					if(a.FirstChild.ToString() == "CompilerGenerated")
+					if (a.FirstChild.ToString() == "CompilerGenerated")
 						isGarbage = true;
 				}
 
@@ -2359,7 +2359,7 @@ namespace Netjs
 				//inspect each member to see if it's a primitive type; if it isn't, emit 'reflection' data: just the name of the type in another field
 				//(typescript's machine services can take it from there)
 				var memos = new List<Tuple<string, string>>();
-				foreach (var field in typeDeclaration.Members.Where(m=>m.EntityType == EntityType.Field))
+				foreach (var field in typeDeclaration.Members.Where(m => m.EntityType == EntityType.Field))
 				{
 					//dont handle types that are primitive
 					if (field.ReturnType is PrimitiveType)
@@ -2374,39 +2374,68 @@ namespace Netjs
 					}
 				}
 
+				StringBuilder sb = new StringBuilder();
+				sb.Append("{");
+
 				//now add all memos as new members
-				foreach (var memo in memos)
+				for(int i=0;i<memos.Count;i++)
 				{
+					var memo = memos[i];
 					string typeName = memo.Item1;
+					string fieldName = memo.Item2;
 
 					//change up the typename so it's in a more convenient format
+					//primitive values are handled differently by reflection (actually, basically, not at all)
 					var listMatch = ListRegex.Match(typeName);
-					if(listMatch.Success)
+					if (listMatch.Success)
 					{
-						typeName = $"L|{listMatch.Groups[1].Value}";
+						var listTypeName = listMatch.Groups[1].Value;
+						if(listTypeName == "boolean" || listTypeName == "string" || listTypeName == "number")
+							typeName = $"l|{listTypeName}";
+						else
+							typeName = $"L|{listTypeName}";
 					}
 					var arrayMatch = ArrayRegex.Match(typeName);
-					if(arrayMatch.Success)
+					if (arrayMatch.Success)
 					{
-						typeName = $"A|{arrayMatch.Groups[1].Value}";
+						var arrayTypeName = arrayMatch.Groups[1].Value;
+						if(arrayTypeName == "boolean" || arrayTypeName == "string" || arrayTypeName == "number")
+							typeName = $"a|{arrayTypeName}";
+						else
+							typeName = $"A|{arrayTypeName}";
 					}
 					var dictMatch = DictionaryRegex.Match(typeName);
 					if (dictMatch.Success)
 					{
-						typeName = $"D|{dictMatch.Groups[1].Value}|{dictMatch.Groups[2].Value}";
+						var valueTypeName = dictMatch.Groups[2].Value;
+						if(valueTypeName == "boolean" || valueTypeName == "string" || valueTypeName == "number")
+							typeName = $"d|{dictMatch.Groups[1].Value}|{dictMatch.Groups[2].Value}";
+						else
+							typeName = $"D|{dictMatch.Groups[1].Value}|{dictMatch.Groups[2].Value}";
 					}
 
-					string fieldName = "__" + memo.Item2;
-					var fd = new FieldDeclaration {
-						Name = fieldName,
-						ReturnType = new PrimitiveType ("string")
-					};
-					var initializer = new VariableInitializer(fieldName, new PrimitiveExpression(typeName));
-					fd.Variables.Add(initializer);
-					fd.Modifiers = Modifiers.Static | Modifiers.Private;
-					typeDeclaration.Members.Add(fd);
+					//note that we prepend a _ to the field name
+					//this is so that we dont search this object for things like `constructor` and `tostring` when reflecting in typescript..
+					//which it will find on the object, instead of valid reflection data
+					sb.Append($"\"_{fieldName}\":\"{typeName}\"");
+					if (i != memos.Count - 1)
+						sb.Append(", ");
 				}
 
+				sb.Append("}");
+				var value = sb.ToString();
+
+				string reflectionFieldName = "__reflection";
+				var fd = new FieldDeclaration
+				{
+					Name = reflectionFieldName,
+					ReturnType = new PrimitiveType("{[id:string]:string}")
+				};
+				var expr = new PrimitiveExpression(value,value);
+				var initializer = new VariableInitializer(reflectionFieldName, expr);
+				fd.Variables.Add(initializer);
+				fd.Modifiers = Modifiers.Static | Modifiers.Private;
+				typeDeclaration.Members.Add(fd);
 			}
 		}
 
