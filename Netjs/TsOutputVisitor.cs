@@ -617,6 +617,10 @@ namespace Netjs
 				WriteIdentifier ("Array");
 				WriteToken (Roles.LChevron);
 				arrayCreateExpression.Type.AcceptVisitor(this);
+				//newer attempts to make jagged arrays not fail totally:
+			foreach (var specifier in arrayCreateExpression.AdditionalArraySpecifiers) {
+				specifier.AcceptVisitor(this);
+			}
 				WriteToken (Roles.RChevron);
 				LPar ();
 				WriteCommaSeparatedList(arrayCreateExpression.Arguments);

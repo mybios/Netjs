@@ -275,6 +275,14 @@ namespace Netjs
 				return pind != null && NodeCollectionsEqual (ind.Arguments, pind.Arguments);
 			}
 
+			//??
+			var primexpr = Variable as PrimitiveExpression;
+			if (primexpr != null)
+			{
+				var p_primexpr = p as PrimitiveExpression;
+				return p_primexpr != null && p_primexpr.Value == primexpr.Value;
+			}
+
 			throw new NotImplementedException (Variable + " (" + Variable.GetType () + ") == " + p);
 		}
 
