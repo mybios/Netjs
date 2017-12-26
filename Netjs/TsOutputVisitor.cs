@@ -32,15 +32,18 @@ namespace Netjs
 	/// </summary>
 	public class TsOutputVisitor : IAstVisitor
 	{
-		readonly IOutputFormatter formatter;
+		IOutputFormatter formatter;
 		readonly CSharpFormattingOptions policy;
 		readonly Stack<AstNode> containerStack = new Stack<AstNode> ();
 		readonly Stack<AstNode> positionStack = new Stack<AstNode> ();
 
-		/// <summary>
-		/// Used to insert the minimal amount of spaces so that the lexer recognizes the tokens that were written.
-		/// </summary>
-		LastWritten lastWritten;
+
+        readonly Stack<IOutputFormatter> outputFormatterStack = new Stack<IOutputFormatter>();
+
+        /// <summary>
+        /// Used to insert the minimal amount of spaces so that the lexer recognizes the tokens that were written.
+        /// </summary>
+        LastWritten lastWritten;
 
 		enum LastWritten
 		{
@@ -78,9 +81,44 @@ namespace Netjs
 			this.policy = formattingPolicy;
 		}
 
+        Dictionary<string, TextWriterOutputFormatter> formaters = new Dictionary<string, TextWriterOutputFormatter>();
+
+        public void Close()
+        {
+            foreach(var item in formaters)
+            {
+                item.Value.textWriter.Close();
+            }
+        }
+
 		#region StartNode/EndNode
 		void StartNode(AstNode node)
 		{
+            if(positionStack.Count == 0)
+            {
+                outputFormatterStack.Push(formatter);
+                var entity = node as ICSharpCode.NRefactory.CSharp.EntityDeclaration;
+                if(entity != null)
+                {
+                    TextWriterOutputFormatter f;
+                    if (!formaters.TryGetValue(entity.Name.ToLower() , out f))
+                    {
+                        var s = new StreamWriter(entity.Name + ".ts");
+                        f = new TextWriterOutputFormatter(s);
+                        formatter = f;
+                        formaters.Add(entity.Name.ToLower(), f);
+                    }
+                    outputFormatterStack.Push(f);
+                }
+                else
+                {
+                    outputFormatterStack.Push(formatter);
+                }
+            }
+            else
+            {
+                outputFormatterStack.Push(formatter);
+            }
 			// Ensure that nodes are visited in the proper nested order.
 			// Jumps to different subtrees are allowed only for the child of a placeholder node.
 			Debug.Assert(containerStack.Count == 0 || node.Parent == containerStack.Peek() || containerStack.Peek().NodeType == NodeType.Pattern);
@@ -100,7 +138,15 @@ namespace Netjs
 			WriteSpecials(pos, null);
 			containerStack.Pop();
 			formatter.EndNode(node);
-		}
+
+            var p = outputFormatterStack.Pop();
+            if(outputFormatterStack.Count == 0)
+            {
+                this.formatter = p;
+            }
+
+
+        }
 		#endregion
 
 		#region WriteSpecials

@@ -26,7 +26,7 @@ namespace ICSharpCode.NRefactory.CSharp
 	/// </summary>
 	public class TextWriterOutputFormatter : IOutputFormatter
 	{
-		readonly TextWriter textWriter;
+		public readonly TextWriter textWriter;
 		int indentation;
 		bool needsIndent = true;
 		bool isAtStartOfLine = true;

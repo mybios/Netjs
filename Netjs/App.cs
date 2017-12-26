@@ -60,13 +60,13 @@ namespace Netjs
 						break;
 				}
 			}
-			try {
+			//try {
 				new App ().Run (config);
 				return 0;
-			} catch (Exception ex) {
-				Error ("{0}", ex);
-				return 1;
-			}
+			//} catch (Exception ex) {
+			//	Error ("{0}", ex);
+			//	return 1;
+			//}
 		}
 
 		void Run (Config config)
@@ -149,10 +149,25 @@ namespace Netjs
 			new CsToTs (config.ES3Compatible).Run (builder.SyntaxTree);
 
 			Step ("Writing");
-			using (var outputWriter = new StreamWriter (outPath)) {
-				var output = new PlainTextOutput (outputWriter);
-				builder.GenerateCode (output, (s, e) => new TsOutputVisitor (s, e));
-			}
+            using (var outputWriter = new StreamWriter(outPath))
+            {
+                var output = new PlainTextOutput(outputWriter);
+
+                var visitors = new List<TsOutputVisitor>();
+
+                builder.GenerateCode(output, (s, e) =>
+                {
+                    var ret = new TsOutputVisitor(s, e);
+                    visitors.Add(ret);
+                    return ret;
+                }
+                );
+
+                foreach(var v in visitors)
+                {
+                    v.Close();
+                }
+            }
 
 			Step ("Done");
 		}

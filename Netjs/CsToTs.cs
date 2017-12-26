@@ -1237,7 +1237,9 @@ namespace Netjs
 
 			static bool StatementIsSafe (AstNode n)
 			{
-				return !n.DescendantsAndSelf.Any (x => x is LabelStatement || x is SwitchStatement);
+                if (n == null)
+                    return false;
+				return  !n.DescendantsAndSelf.Any (x => x is LabelStatement || x is SwitchStatement);
 			}
 
 			static bool StatementIsBranch (AstNode n)
@@ -4077,8 +4079,10 @@ namespace Netjs
 				return mt.MemberName;
 			}
 
-			throw new NotSupportedException ("Unknown JS constructor");
-		}
+			//throw new NotSupportedException ("Unknown JS constructor");
+            Console.WriteLine("Unknown JS constructor");
+            return "unknown";
+        }
 
 		static int Specificity (List<ParameterDeclaration> ps)
 		{
